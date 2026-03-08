@@ -1,0 +1,125 @@
+---
+/**
+ * OAuth Callback Handler
+ * 
+ * This page handles the redirect from Google OAuth.
+ * It exchanges the auth code for a session and redirects to home.
+ */
+---
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signing in... - WordReel</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            color: #ef4444;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <p id="status">Signing you in...</p>
+        <p id="error" class="error" style="display: none;"></p>
+    </div>
+
+    <script>
+        import { supabase } from '../../lib/supabase';
+
+        async function handleCallback() {
+            const statusEl = document.getElementById('status');
+            const errorEl = document.getElementById('error');
+
+            try {
+                // Get the auth code from URL hash or query params
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const queryParams = new URLSearchParams(window.location.search);
+                
+                // Check for error in URL
+                const error = hashParams.get('error') || queryParams.get('error');
+                const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+                
+                if (error) {
+                    throw new Error(errorDescription || error);
+                }
+
+                // Exchange code for session (Supabase handles this automatically)
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    throw sessionError;
+                }
+
+                if (session) {
+                    // Store the access token for API calls
+                    localStorage.setItem('wordreel_token', session.access_token);
+                    
+                    // Store user info
+                    const user = session.user;
+                    localStorage.setItem('wordreel_user', JSON.stringify({
+                        id: user.id,
+                        email: user.email,
+                        username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                        avatar_url: user.user_metadata?.avatar_url,
+                        created_at: user.created_at,
+                    }));
+
+                    if (statusEl) statusEl.textContent = 'Success! Redirecting...';
+                    
+                    // Redirect to home
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 500);
+                } else {
+                    throw new Error('No session found. Please try again.');
+                }
+            } catch (err) {
+                console.error('Auth callback error:', err);
+                if (statusEl) statusEl.textContent = 'Sign in failed';
+                if (errorEl) {
+                    errorEl.textContent = err instanceof Error ? err.message : 'An error occurred';
+                    errorEl.style.display = 'block';
+                }
+                
+                // Redirect to home with error after delay
+                setTimeout(() => {
+                    window.location.href = '/?auth_error=' + encodeURIComponent(
+                        err instanceof Error ? err.message : 'Authentication failed'
+                    );
+                }, 3000);
+            }
+        }
+
+        // Run on page load
+        handleCallback();
+    </script>
+</body>
+</html>

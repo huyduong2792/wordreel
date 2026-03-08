@@ -1,0 +1,113 @@
+<!-- Include Video.js CSS and JS from CDN -->
+<link href="vjs.zencdn.net" rel="stylesheet" />
+<script src="vjs.zencdn.net"></script>
+
+<div class="tiktok-container">
+  <video id="my-video" class="video-js vjs-big-play-centered" playsinline></video>
+  
+  <!-- Custom Subtitle Overlay -->
+  <div id="sub-overlay" class="custom-sub-overlay"></div>
+  
+  <!-- Long-Press Speed Indicator -->
+  <div id="speed-indicator" class="speed-indicator">2X Speed</div>
+</div>
+
+<style>
+  .tiktok-container { position: relative; width: 360px; height: 640px; background: #000; overflow: hidden; }
+  .video-js { width: 100% !important; height: 100% !important; }
+  
+  /* TikTok Subtitle Styling */
+  .custom-sub-overlay {
+    position: absolute;
+    bottom: 15%;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 10;
+    transition: transform 0.1s ease-out, opacity 0.2s;
+  }
+
+  /* Speed Bar UI */
+  .speed-indicator {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 20;
+  }
+  .speed-indicator.visible { opacity: 1; }
+</style>
+
+<script>
+  const player = videojs('my-video', {
+    controls: false, // Use custom UI or TikTok-style side buttons
+    autoplay: true,
+    loop: true,
+    sources: [{ src: 'your-video.mp4', type: 'video/mp4' }]
+  });
+
+  // 1. Frame-Level Subtitle Control
+  const subtitleData = [
+    { start: 0.5, end: 2.0, text: "Welcome to 2026!" },
+    { start: 2.1, end: 4.0, text: "Frame-accurate subtitles enabled." }
+  ];
+
+  const subOverlay = document.getElementById('sub-overlay');
+  
+  function updateSubtitles() {
+    const now = player.currentTime();
+    const activeSub = subtitleData.find(s => now >= s.start && now <= s.end);
+
+    if (activeSub) {
+      subOverlay.innerText = activeSub.text;
+      subOverlay.style.opacity = 1;
+      // Example Frame-Level Styling: Pulsing scale effect based on timing
+      const progress = (now - activeSub.start) / (activeSub.end - activeSub.start);
+      subOverlay.style.transform = `scale(${1 + Math.sin(progress * Math.PI) * 0.1})`;
+    } else {
+      subOverlay.style.opacity = 0;
+    }
+    
+    // Use high-precision callback for 2026 browsers
+    player.el().querySelector('video').requestVideoFrameCallback(updateSubtitles);
+  }
+  player.ready(() => updateSubtitles());
+
+  // 2. Hold-to-Screen Playback Speed (TikTok Style)
+  let holdTimer;
+  const speedIndicator = document.getElementById('speed-indicator');
+
+  const startHold = () => {
+    holdTimer = setTimeout(() => {
+      player.playbackRate(2.0); // Double speed
+      speedIndicator.classList.add('visible');
+    }, 400); // 400ms threshold for "long press"
+  };
+
+  const endHold = () => {
+    clearTimeout(holdTimer);
+    player.playbackRate(1.0); // Reset to normal
+    speedIndicator.classList.remove('visible');
+  };
+
+  const videoEl = player.el();
+  videoEl.addEventListener('mousedown', startHold);
+  videoEl.addEventListener('mouseup', endHold);
+  videoEl.addEventListener('touchstart', startHold);
+  videoEl.addEventListener('touchend', endHold);
+
+  // 3. Toggle Subtitles Feature
+  function toggleSubtitles(visible) {
+    subOverlay.style.display = visible ? 'block' : 'none';
+  }
+</script>

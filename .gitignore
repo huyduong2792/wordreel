@@ -1,0 +1,101 @@
+# ==========================
+# Environment & Secrets
+# ==========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+
+# ==========================
+# Node.js / Frontend
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+.yarn/
+
+# ==========================
+# Astro / Build outputs
+# ==========================
+.astro/
+dist/
+
+# ==========================
+# IDE & Editor
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Celery
+# ==========================
+celerybeat-schedule
+celerybeat.pid
+*.db
+
+# ==========================
+# Testing & Coverage
+# ==========================
+coverage/
+*.cover
+*.lcov
+
+# ==========================
+# Large files / Media (optional)
+# ==========================
+*.mp4
+*.mov
+*.avi
+*.mkv
+debug_videos/
+
+# ==========================
+# Misc
+# ==========================
+*.log
+*.tmp
+*.temp
+*.bak
+.cache/

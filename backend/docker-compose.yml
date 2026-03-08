@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # FastAPI Backend
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+      - /tmp/tus-uploads:/tmp/tus-uploads
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker for Content Processing
+  celery_worker:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+    command: celery -A celery_app worker --loglevel=info -Q crawler
+
+  # Celery Beat for Scheduled Tasks
+  celery_beat:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+    command: celery -A celery_app beat --loglevel=info
+
+  # Recommendation Worker for Redis → DB sync and pre-computing recommendations
+  recommendation_worker:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+    command: python -m workers.recommendation_worker
+    restart: unless-stopped
+
+volumes:
+  redis_data:

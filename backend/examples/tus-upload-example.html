@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUS Video Upload Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.1.1/dist/tus.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .video-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>WordReel Video Upload</h1>
+    <p>Upload videos using TUS protocol to your cloud provider</p>
+
+    <div class="upload-section">
+        <h2>Select Video File</h2>
+        <input type="file" id="videoFile" accept="video/*">
+        
+        <div style="margin: 20px 0;">
+            <input type="text" id="videoTitle" placeholder="Video Title" style="width: 100%; padding: 10px; margin: 5px 0;">
+            <input type="text" id="videoDescription" placeholder="Description (optional)" style="width: 100%; padding: 10px; margin: 5px 0;">
+            <input type="text" id="videoTags" placeholder="Tags (comma separated)" style="width: 100%; padding: 10px; margin: 5px 0;">
+        </div>
+
+        <button id="uploadBtn" disabled>Upload Video</button>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="video-info" id="videoInfo" style="display: none;"></div>
+    </div>
+
+    <script>
+        const TUS_ENDPOINT = 'http://10.3.16.62/v1/namespaces/huydq/tus';
+        const API_ENDPOINT = 'http://localhost:8000/api/v1';
+        
+        // Your credentials from .env
+        const TUS_CREDENTIALS = {
+            'X-Auth-Type': 'application_credential',
+            'X-App-Credential-Id': '6c0394c1185a4377ae15f9a0cb34dcfc',
+            'X-App-Credential-Secret': 'Jjh8Ig88lLs7nomLE01B4CGHRj1PeKGjBuAtSpAMqgSN0ADpqOd6fx2nkQsM8dnjHozVQ_kU4w-jd9qoM559pw'
+        };
+        
+        let selectedFile = null;
+        let authToken = 'YOUR_AUTH_TOKEN'; // Get from login
+
+        document.getElementById('videoFile').addEventListener('change', (e) => {
+            selectedFile = e.target.files[0];
+            document.getElementById('uploadBtn').disabled = !selectedFile;
+        });
+
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const title = document.getElementById('videoTitle').value || selectedFile.name;
+            const description = document.getElementById('videoDescription').value;
+            const tags = document.getElementById('videoTags').value;
+
+            // Show progress bar
+            document.getElementById('progressBar').style.display = 'block';
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = true;
+
+            // Generate file path
+            const now = new Date();
+            const filePath = `/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${selectedFile.name}`;
+
+            // Prepare metadata
+            const metadata = {
+                filename: selectedFile.name,
+                filetype: selectedFile.type,
+                file_path: filePath,
+                dash_qualities: '360,720',
+                hls_qualities: '720',
+                creator: 'user',
+                default_thumb_timepct: '0,5'
+            };
+
+            // Upload using TUS
+            const upload = new tus.Upload(selectedFile, {
+                endpoint: TUS_ENDPOINT,
+                retryDelays: [0, 3000, 5000, 10000, 20000],
+                metadata: metadata,
+                headers: TUS_CREDENTIALS,
+                chunkSize: 5 * 1024 * 1024, // 5MB chunks
+                onError: (error) => {
+                    console.error('Upload failed:', error);
+                    showStatus('Upload failed: ' + error.message, 'error');
+                    document.getElementById('uploadBtn').disabled = false;
+                },
+                onProgress: (bytesUploaded, bytesTotal) => {
+                    const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                    document.getElementById('progressFill').style.width = percentage + '%';
+                    document.getElementById('progressFill').textContent = percentage + '%';
+                },
+                onSuccess: async () => {
+                    console.log('Upload complete!');
+                    showStatus('Upload complete! Registering video and generating subtitles...', 'success');
+
+                    // Register video with backend
+                    try {
+                        const videoUrl = `http://huydq.staging.mediacdn.vn${filePath}`;
+                        
+                        const response = await fetch(`${API_ENDPOINT}/videos/register-upload`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: new URLSearchParams({
+                                video_url: videoUrl,
+                                file_path: filePath,
+                                title: title,
+                                description: description,
+                                tags: tags
+                            })
+                        });
+
+                        if (response.ok) {
+                            const videoData = await response.json();
+                            showStatus('Video registered! Subtitles and quiz are being generated...', 'success');
+                            displayVideoInfo(videoData);
+                        } else {
+                            const error = await response.text();
+                            showStatus('Failed to register video: ' + error, 'error');
+                        }
+                    } catch (error) {
+                        showStatus('Failed to register video: ' + error.message, 'error');
+                    }
+
+                    document.getElementById('uploadBtn').disabled = false;
+                }
+            });
+
+            // Start upload
+            upload.start();
+        });
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        function displayVideoInfo(video) {
+            const info = document.getElementById('videoInfo');
+            info.innerHTML = `
+                <h3>Video Information</h3>
+                <p><strong>ID:</strong> ${video.id}</p>
+                <p><strong>Title:</strong> ${video.title}</p>
+                <p><strong>Status:</strong> ${video.status}</p>
+                <p><strong>Video URL:</strong> <a href="${video.video_url}" target="_blank">${video.video_url}</a></p>
+                <p><strong>HLS URL:</strong> <a href="${video.hls_url}" target="_blank">${video.hls_url}</a></p>
+                <p><strong>DASH URL:</strong> <a href="${video.dash_url}" target="_blank">${video.dash_url}</a></p>
+                <p><strong>Thumbnail:</strong> <img src="${video.thumbnail_url}" alt="Thumbnail" style="max-width: 200px;"></p>
+                <p><em>Note: Subtitles and quiz are being generated in the background. Check back in a few minutes.</em></p>
+            `;
+            info.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
