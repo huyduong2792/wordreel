@@ -1,3 +1,8 @@
+---
+applyTo: "**/auth/**"
+description: "Google OAuth implementation guide for WordReel"
+---
+
 # Google Authentication - WordReel
 
 > **Purpose**: This document explains how Google OAuth authentication works in the WordReel project.

@@ -1,3 +1,8 @@
+---
+applyTo: "**/*"
+description: "Mandatory development workflow for all code changes"
+---
+
 # AI Agent Development Flow
 
 > ⚠️ **MANDATORY**: All AI agents MUST follow this development flow when making changes to the WordReel codebase.
