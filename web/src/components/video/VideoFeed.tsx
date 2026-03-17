@@ -3,6 +3,7 @@ import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
 import { SlidesPlayer } from './SlidesPlayer';
 import { VideoControls } from './VideoControls';
+import { ShareModal } from './ShareModal';
 import { api } from '../../lib/api';
 import { postToVideoData, MOCK_VIDEO } from './types';
 import type { VideoData, ContentType } from './types';
@@ -31,22 +32,40 @@ interface VideoFeedProps {
     onActivePostChange?: (postId: string, commentsCount: number) => void;
     onActivePostDataChange?: (data: ActivePostData | null) => void;
     onControlsStateChange?: (state: VideoControlsState | null) => void;
-    navigateToPostRef?: React.MutableRefObject<((postId: string) => Promise<void>) | null>;
+    initialPostId?: string;
+    sessionReady?: boolean;
 }
 
-export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostChange, onActivePostDataChange, onControlsStateChange, navigateToPostRef }) => {
+export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostChange, onActivePostDataChange, onControlsStateChange, initialPostId, sessionReady = false }) => {
     const { isAuthenticated, setShowAuthModal } = useAuth();
     const [posts, setPosts] = useState<VideoData[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
-    const [isMuted, setIsMuted] = useState(true);
+    // Restore mute preference from localStorage (default to true for autoplay)
+    const [isMuted, setIsMuted] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('wordreel_muted');
+            return saved !== 'false'; // Default to true if not set
+        }
+        return true;
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
-    const [sessionInitialized, setSessionInitialized] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
+    
+    // Share modal state
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [sharePostId, setSharePostId] = useState<string>('');
     
     // Video controls state (lifted up from VideoPlayer)
     const [showSubtitles, setShowSubtitles] = useState(true);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    
+    // Persist mute preference
+    const handleMuteChange = useCallback((muted: boolean) => {
+        setIsMuted(muted);
+        localStorage.setItem('wordreel_muted', String(muted));
+    }, []);
     
     // Handle speed change
     const handleChangeSpeed = useCallback((speed?: number) => {
@@ -62,20 +81,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
     const videoRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const loadingRef = useRef(false);
     const prefetchTriggeredRef = useRef(false);
-
-    // Initialize session on mount
-    useEffect(() => {
-        const initSession = async () => {
-            try {
-                await api.initSession();
-                setSessionInitialized(true);
-            } catch (err) {
-                console.warn('Failed to initialize session:', err);
-                setSessionInitialized(true); // Continue anyway
-            }
-        };
-        initSession();
-    }, []);
 
     // Notify parent when active post changes
     useEffect(() => {
@@ -109,7 +114,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
         });
     }, [showSubtitles, playbackSpeed, onControlsStateChange, handleChangeSpeed]);
 
-    // Fetch posts using recommendation feed
+    // Fetch posts using recommendation feed (for appending more posts)
     const fetchPosts = useCallback(async (append = false) => {
         if (loadingRef.current) return;
         loadingRef.current = true;
@@ -178,21 +183,69 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
         }
     }, [contentType]);
 
-    // Initial load after session is initialized
+    // Initial load when session is ready
     useEffect(() => {
-        if (sessionInitialized) {
-            fetchPosts(false);
-        }
-    }, [sessionInitialized, fetchPosts]);
+        if (!sessionReady || initialLoadDone) return;
+        
+        const loadInitialFeed = async () => {
+            if (loadingRef.current) return;
+            loadingRef.current = true;
+            setIsLoading(true);
+            
+            try {
+                let initialPosts: VideoData[] = [];
+                
+                // If initialPostId, fetch that post first
+                if (initialPostId) {
+                    try {
+                        const targetPost = await api.getPost(initialPostId);
+                        initialPosts = [postToVideoData(targetPost)];
+                    } catch (err) {
+                        console.error('Failed to fetch initial post:', err);
+                    }
+                }
+                
+                // Then load normal feed
+                const response = await api.getRecommendedFeed(5);
+                const feedData = response.posts.map(postToVideoData);
+                
+                if (initialPosts.length > 0) {
+                    // Prepend initial post, then add feed posts (excluding duplicates)
+                    const existingIds = new Set(initialPosts.map(p => p.id));
+                    const newPosts = feedData.filter(p => !existingIds.has(p.id));
+                    setPosts([...initialPosts, ...newPosts]);
+                } else {
+                    setPosts(feedData);
+                }
+                
+                setHasMore(response.has_more);
+                setError(null);
+                setActiveIndex(0);
+            } catch (err) {
+                console.error('Failed to load feed:', err);
+                setError('Failed to load content');
+                setPosts([MOCK_VIDEO]);
+            } finally {
+                setIsLoading(false);
+                loadingRef.current = false;
+                setInitialLoadDone(true);
+            }
+        };
+        
+        loadInitialFeed();
+    }, [sessionReady, initialPostId, initialLoadDone]);
 
     // Prefetch when less than 2 videos remaining to play
+    // Only run AFTER initial load is complete
     useEffect(() => {
+        if (!initialLoadDone) return; // Wait for initial load first!
+        
         const remainingVideos = posts.length - activeIndex - 1;
         if (remainingVideos < 2 && hasMore && !prefetchTriggeredRef.current && !loadingRef.current) {
             prefetchTriggeredRef.current = true;
             fetchPosts(true);
         }
-    }, [activeIndex, posts.length, hasMore, fetchPosts]);
+    }, [activeIndex, posts.length, hasMore, fetchPosts, initialLoadDone]);
 
     // Use IntersectionObserver for reliable active video detection
     useEffect(() => {
@@ -330,56 +383,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
         }
     };
 
-    // Navigate to a specific post (for "You may like", share links, search)
-    // Resets feed with this video first, then loads similar videos
-    const navigateToPost = useCallback(async (postId: string) => {
-        try {
-            setIsLoading(true);
-            
-            // Fetch similar post IDs (minimal data) first
-            let similarIds: string[] = [];
-            try {
-                const similarItems = await api.getSimilarPosts(postId, 5);
-                similarIds = similarItems.map(item => item.id);
-            } catch (err) {
-                console.warn('Failed to fetch similar posts:', err);
-            }
-            
-            // Batch fetch: target post + all similar posts in one request
-            const allIds = [postId, ...similarIds];
-            const posts = await api.getPostsBatch(allIds);
-            
-            if (posts.length === 0) {
-                console.error('Target post not found');
-                return;
-            }
-            
-            // Convert to VideoData and maintain order
-            const videoPosts = posts.map(postToVideoData);
-            
-            // Reset feed: target video first, then similar videos
-            setPosts(videoPosts);
-            setActiveIndex(0);
-            setHasMore(true);
-            prefetchTriggeredRef.current = false;
-            
-            // Scroll to top
-            if (containerRef.current) {
-                containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
-            }
-        } catch (err) {
-            console.error('Failed to navigate to post:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Expose navigate function to parent via ref
-    useEffect(() => {
-        if (navigateToPostRef) {
-            navigateToPostRef.current = navigateToPost;
-        }
-    }, [navigateToPost, navigateToPostRef]);
+    // Handle share action
+    const handleShare = (postId: string) => {
+        setSharePostId(postId);
+        setShareModalOpen(true);
+    };
 
     // Render appropriate player based on content type
     const renderPlayer = (post: VideoData, index: number) => {
@@ -388,7 +396,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
             data: post,
             isActive,
             isMuted,
-            onMuteChange: setIsMuted,
+            onMuteChange: handleMuteChange,
             onLike: () => handleLike(post.originalId || post.id),
             onSave: () => handleSave(post.originalId || post.id),
             showSubtitles,
@@ -465,7 +473,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
                                 onToggleSave={() => handleSave(post.originalId || post.id)}
                                 onToggleSubtitles={() => setShowSubtitles(prev => !prev)}
                                 onChangeSpeed={handleChangeSpeed}
-                                onShare={() => console.log('Share')}
+                                onShare={() => handleShare(post.originalId || post.id)}
                             />
                         </div>
                     </div>
@@ -478,6 +486,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ contentType, onActivePostC
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
             )}
+            
+            {/* Share Modal */}
+            <ShareModal 
+                isOpen={shareModalOpen}
+                onClose={() => setShareModalOpen(false)}
+                postId={sharePostId}
+            />
         </div>
     );
 };

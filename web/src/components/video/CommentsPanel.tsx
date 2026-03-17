@@ -6,10 +6,9 @@ import { useAuth } from '../auth/AuthContext';
 interface CommentsPanelProps {
     postId: string;
     commentsCount: number;
-    onNavigateToPost?: (postId: string) => void;
 }
 
-export const CommentsPanel: React.FC<CommentsPanelProps> = ({ postId, commentsCount, onNavigateToPost }) => {
+export const CommentsPanel: React.FC<CommentsPanelProps> = ({ postId, commentsCount }) => {
     const { isAuthenticated, setShowAuthModal } = useAuth();
     const [comments, setComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -416,7 +415,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({ postId, commentsCo
                         similarPosts.map((post) => (
                             <button
                                 key={post.id}
-                                onClick={() => onNavigateToPost?.(post.id)}
+                                onClick={() => window.location.href = `/post/${post.id}`}
                                 className="w-full flex gap-3 p-2 rounded-lg hover:bg-gray-800/50 transition-colors text-left group"
                             >
                                 {/* Thumbnail */}

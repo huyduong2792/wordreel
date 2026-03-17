@@ -1,31 +1,35 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, AuthModal, UserMenu, useAuth } from '../auth';
 import { VideoFeed } from '../video/VideoFeed';
 import { CommentsPanel } from '../video/CommentsPanel';
 import { Home, Compass, Search, ChevronUp, ChevronDown, Upload, Radio, User } from 'lucide-react';
+import { api } from '../../lib/api';
+
+interface AppContentProps {
+    initialPostId?: string;
+    sessionReady: boolean;
+}
 
 // Inner component that uses auth context
-const AppContent: React.FC = () => {
+const AppContent: React.FC<AppContentProps> = ({ initialPostId, sessionReady }) => {
     const { showAuthModal, setShowAuthModal, isAuthenticated } = useAuth();
     const [activePostId, setActivePostId] = useState<string>('');
     const [activeCommentsCount, setActiveCommentsCount] = useState<number>(0);
-    const navigateToPostRef = useRef<((postId: string) => Promise<void>) | null>(null);
-
-    const handleNavigateToPost = (postId: string) => {
-        navigateToPostRef.current?.(postId);
-    };
 
     return (
         <div className="flex h-screen bg-black overflow-hidden">
             {/* Sidebar - Desktop Only (TikTok style) */}
             <aside className="hidden lg:flex flex-col w-[240px] flex-shrink-0 px-3 py-5">
                 {/* Logo */}
-                <div className="flex items-center gap-2 mb-5 px-3">
+                <a 
+                    href="/"
+                    className="flex items-center gap-2 mb-5 px-3 cursor-pointer hover:opacity-80 transition-opacity"
+                >
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#fe2c55] to-[#25f4ee] flex items-center justify-center">
                         <span className="text-white font-bold text-xl">W</span>
                     </div>
                     <span className="text-xl font-bold text-white">WordReel</span>
-                </div>
+                </a>
 
                 {/* Search Input */}
                 <div className="px-3 mb-4">
@@ -78,7 +82,8 @@ const AppContent: React.FC = () => {
                             setActivePostId(postId);
                             setActiveCommentsCount(commentsCount);
                         }}
-                        navigateToPostRef={navigateToPostRef}
+                        initialPostId={initialPostId}
+                        sessionReady={sessionReady}
                     />
                 </div>
             </main>
@@ -105,7 +110,6 @@ const AppContent: React.FC = () => {
                         <CommentsPanel 
                             postId={activePostId} 
                             commentsCount={activeCommentsCount}
-                            onNavigateToPost={handleNavigateToPost}
                         />
                     ) : (
                         <div className="h-full flex items-center justify-center text-gray-500">
@@ -128,12 +132,12 @@ const AppContent: React.FC = () => {
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-sm">
                 <div className="flex items-center justify-between px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#fe2c55] to-[#25f4ee] flex items-center justify-center">
                             <span className="text-white font-bold">W</span>
                         </div>
                         <span className="font-bold text-white">WordReel</span>
-                    </div>
+                    </a>
 
                     {isAuthenticated ? (
                         <UserMenu />
@@ -216,11 +220,24 @@ const BottomNavItem: React.FC<{
     </button>
 );
 
+interface AppProps {
+    initialPostId?: string;
+}
+
 // Main App with Provider
-export const App: React.FC = () => {
+export const App: React.FC<AppProps> = ({ initialPostId }) => {
+    const [sessionReady, setSessionReady] = useState(false);
+    
+    // Initialize session once at app level
+    useEffect(() => {
+        api.initSession()
+            .then(() => setSessionReady(true))
+            .catch(() => setSessionReady(true)); // Continue anyway
+    }, []);
+    
     return (
         <AuthProvider>
-            <AppContent />
+            <AppContent initialPostId={initialPostId} sessionReady={sessionReady} />
         </AuthProvider>
     );
 };

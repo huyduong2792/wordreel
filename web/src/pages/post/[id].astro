@@ -1,0 +1,10 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { App } from '../../components/app/App';
+
+const { id } = Astro.params;
+---
+
+<Layout title="WordReel - Learn English">
+	<App initialPostId={id} client:load />
+</Layout>
