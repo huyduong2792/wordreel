@@ -8,7 +8,7 @@ from fastapi.openapi.docs import get_redoc_html
 import structlog
 
 from config import get_settings
-from api.routes import comments, recommendations, quizzes, tus, posts, admin
+from api.routes import comments, recommendations, quizzes, tus, posts, admin, recommend_explore
 
 # Configure structured logging
 structlog.configure(
@@ -91,6 +91,7 @@ app.include_router(recommendations.router, prefix="/api/v1/recommendations", tag
 app.include_router(quizzes.router, prefix="/api/v1/quizzes", tags=["Quizzes"])
 app.include_router(tus.router, prefix="/api/v1/tus", tags=["TUS Upload"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(recommend_explore.router, prefix="/api/v1/explore", tags=["Explore"])
 
 
 if __name__ == "__main__":

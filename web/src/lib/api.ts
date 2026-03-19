@@ -95,6 +95,10 @@ export interface Post {
     is_liked: boolean;
     is_saved: boolean;
     
+    // User info
+    username?: string;
+    user_avatar_url?: string;
+
     created_at: string;
     updated_at: string;
 }
@@ -104,6 +108,8 @@ export interface FeedResponse {
     total: number;
     page: number;
     has_more: boolean;
+    offset?: number;
+    limit?: number;
 }
 
 export interface Comment {
@@ -445,7 +451,7 @@ class ApiClient {
     async getRecommendedFeed(limit = 5): Promise<FeedResponse & { prefetch_at: number }> {
         const sessionId = this.getSessionId();
         const params = new URLSearchParams({ limit: limit.toString() });
-        
+
         const headers: HeadersInit = {};
         if (sessionId) {
             headers['X-Session-Id'] = sessionId;
@@ -455,6 +461,18 @@ class ApiClient {
             `/recommendations/feed?${params}`,
             { headers }
         );
+    }
+
+    async getExploreFeed(limit = 20, offset = 0, tag?: string): Promise<FeedResponse> {
+        const sessionId = this.getSessionId();
+        const params = new URLSearchParams({
+            limit: limit.toString(),
+            offset: offset.toString(),
+        });
+        if (tag) params.append('tag', tag);
+        const headers: HeadersInit = {};
+        if (sessionId) headers['X-Session-Id'] = sessionId;
+        return this.request<FeedResponse>(`/explore?${params}`, { headers });
     }
 }
 

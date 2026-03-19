@@ -45,8 +45,8 @@ const AppContent: React.FC<AppContentProps> = ({ initialPostId, sessionReady }) 
 
                 {/* Navigation */}
                 <nav className="flex-1 space-y-1">
-                    <SidebarItem icon={<Home size={24} />} label="For You" active />
-                    <SidebarItem icon={<Compass size={24} />} label="Explore" />
+                    <SidebarItem icon={<Home size={24} />} label="For You" active href="/" />
+                    <SidebarItem icon={<Compass size={24} />} label="Explore" href="/explore" />
                 </nav>
 
                 {/* Login Button */}
@@ -154,8 +154,8 @@ const AppContent: React.FC<AppContentProps> = ({ initialPostId, sessionReady }) 
 
             {/* Bottom Navigation - Mobile Only */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-gray-800/50 px-2 py-2 flex items-center justify-around">
-                <BottomNavItem icon={<Home size={24} />} label="Home" active />
-                <BottomNavItem icon={<Compass size={24} />} label="Discover" />
+                <BottomNavItem icon={<Home size={24} />} label="Home" active href="/" />
+                <BottomNavItem icon={<Compass size={24} />} label="Discover" href="/explore" />
                 <button className="p-2 bg-white rounded-lg">
                     <Upload size={24} className="text-black" />
                 </button>
@@ -185,40 +185,55 @@ const AppContent: React.FC<AppContentProps> = ({ initialPostId, sessionReady }) 
 };
 
 // Sidebar Item Component
-const SidebarItem: React.FC<{
+export const SidebarItem: React.FC<{
     icon: React.ReactNode;
     label: string;
     active?: boolean;
-}> = ({ icon, label, active }) => (
-    <button
-        className={`w-full px-4 py-3 flex items-center gap-4 rounded-lg transition-colors ${
-            active 
-                ? 'text-white font-bold' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-        }`}
-    >
-        {icon}
-        <span>{label}</span>
-    </button>
-);
+    href?: string;
+}> = ({ icon, label, active, href }) =>
+    href ? (
+        <a href={href} className={`w-full px-4 py-3 flex items-center gap-4 rounded-lg transition-colors ${active ? 'text-white font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            {icon}
+            <span>{label}</span>
+        </a>
+    ) : (
+        <button
+            className={`w-full px-4 py-3 flex items-center gap-4 rounded-lg transition-colors ${active ? 'text-white font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+        >
+            {icon}
+            <span>{label}</span>
+        </button>
+    );
 
 // Bottom Nav Item Component  
 const BottomNavItem: React.FC<{
     icon: React.ReactNode;
     label: string;
     active?: boolean;
+    href?: string;
     onClick?: () => void;
-}> = ({ icon, label, active, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`flex flex-col items-center gap-1 px-3 py-1 ${
-            active ? 'text-white' : 'text-gray-500'
-        }`}
-    >
-        {icon}
-        <span className="text-[10px]">{label}</span>
-    </button>
-);
+}> = ({ icon, label, active, href, onClick }) =>
+    href ? (
+        <a
+            href={href}
+            className={`flex flex-col items-center gap-1 px-3 py-1 ${
+                active ? 'text-white' : 'text-gray-500'
+            }`}
+        >
+            {icon}
+            <span className="text-[10px]">{label}</span>
+        </a>
+    ) : (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center gap-1 px-3 py-1 ${
+                active ? 'text-white' : 'text-gray-500'
+            }`}
+        >
+            {icon}
+            <span className="text-[10px]">{label}</span>
+        </button>
+    );
 
 interface AppProps {
     initialPostId?: string;

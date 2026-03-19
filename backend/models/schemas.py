@@ -132,10 +132,14 @@ class PostResponse(PostBase):
     created_at: datetime
     updated_at: datetime
     
+    # User info
+    username: Optional[str] = None
+    user_avatar_url: Optional[str] = None
+
     # User interaction flags
     is_liked: bool = False
     is_saved: bool = False
-    
+
     class Config:
         from_attributes = True
 
