@@ -62,7 +62,7 @@ def process_subtitles(post_id: str):
     ...
 ```
 
-Queue names: `subtitle_processing`, `crawler`
+Queue names: `crawler` (see `backend/docker-compose.yml` for all services)
 
 ## Logging
 Use structlog for structured logging:
@@ -74,4 +74,21 @@ logger.info("processing", post_id=post_id)
 ```
 
 ## Hot Reload
-Backend auto-reloads with uvicorn `--reload`. For Docker: mount source volume.
+**API server** — auto-reloads with uvicorn `--reload` (via volume mount), no action needed.
+
+**Celery workers** — use `docker cp` to copy code + restart to save rebuild time:
+```bash
+# Restart celery worker (crawler queue)
+docker cp . backend-celery_worker-1:/app/
+docker restart backend-celery_worker-1
+
+# Restart recommendation worker
+docker cp . backend-recommendation_worker-1:/app/
+docker restart backend-recommendation_worker-1
+```
+
+**Only rebuild** (`docker compose up -d --build`) when:
+- Dockerfile changes
+- New dependencies (requirements.txt)
+- System-level changes
+

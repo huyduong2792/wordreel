@@ -1,91 +1,50 @@
 {
   "permissions": {
     "allow": [
-      {
-        "tool": "Bash",
-        "command": "cd backend && *"
-      },
-      {
-        "tool": "Bash",
-        "command": "cd web && *"
-      },
-      {
-        "tool": "Bash",
-        "command": "npm run *"
-      },
-      {
-        "tool": "Bash",
-        "command": "python -m *"
-      },
-      {
-        "tool": "Bash",
-        "command": "pytest"
-      },
-      {
-        "tool": "Bash",
-        "command": "black"
-      },
-      {
-        "tool": "Bash",
-        "command": "flake8"
-      },
-      {
-        "tool": "Bash",
-        "command": "uvicorn"
-      },
-      {
-        "tool": "Bash",
-        "command": "celery"
-      },
-      {
-        "tool": "Bash",
-        "command": "redis-cli"
-      },
-      {
-        "tool": "WebFetch",
-        "host": "github.com"
-      },
-      {
-        "tool": "WebFetch",
-        "host": "raw.githubusercontent.com"
-      },
-      {
-        "tool": "WebFetch",
-        "host": "docs.claude.ai"
-      }
+      "Bash: cd backend && *",
+      "Bash: cd web && *",
+      "Bash: npm run *",
+      "Bash: python -m *",
+      "Bash: pytest",
+      "Bash: black",
+      "Bash: flake8",
+      "Bash: uvicorn",
+      "Bash: celery",
+      "Bash: redis-cli",
+      "Bash: docker compose",
+      "WebFetch: github.com",
+      "WebFetch: raw.githubusercontent.com",
+      "WebFetch: docs.claude.ai"
     ],
     "deny": [
-      {
-        "tool": "Bash",
-        "command": "rm -rf /"
-      },
-      {
-        "tool": "Edit",
-        "path": "**/.env"
-      },
-      {
-        "tool": "Write",
-        "path": "**/.env"
-      }
+      "Bash: rm -rf /",
+      "Edit: **/.env",
+      "Write: **/.env"
     ]
   },
   "hooks": {
-    "PreToolUse": {
-      "Edit": [
-        ".claude/hooks/protect-files.sh"
-      ],
-      "Write": [
-        ".claude/hooks/protect-files.sh"
-      ]
-    },
-    "PostToolUse": {
-      "Edit": [
-        ".claude/hooks/auto-format.sh"
-      ],
-      "Write": [
-        ".claude/hooks/auto-format.sh"
-      ]
-    }
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/auto-format.sh"
+          }
+        ]
+      }
+    ]
   },
   "defaults": {
     "autoMemoryEnabled": true,

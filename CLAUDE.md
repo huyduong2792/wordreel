@@ -34,7 +34,14 @@ wordreel/
 
 ## Quick Commands
 
-### Backend
+### Backend (Docker Compose)
+```bash
+cd backend && docker compose up -d     # Start API, Celery workers, Celery beat, Redis, recommendation worker
+cd backend && docker compose logs -f   # View logs
+cd backend && docker compose down      # Stop all services
+```
+
+### Backend (local dev without Docker)
 ```bash
 cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000  # API server
 cd backend && python -m pytest -v                                  # Run tests

@@ -33,12 +33,33 @@ wordreel/
 
 ## Quick Commands
 
-### Backend
+### Backend (Docker Compose - recommended)
 ```bash
-cd backend && python -m pytest -v           # Run tests
-cd backend && uvicorn main:app --reload      # Start API
-cd backend && celery -A celery_app worker -Q subtitle_processing,crawler  # Workers
-redis-server                                  # Start Redis
+cd backend && docker compose up -d      # Start API, Redis, Celery workers, Celery beat, recommendation worker
+cd backend && docker compose logs -f   # View logs
+cd backend && docker compose down       # Stop all services
+```
+
+### Hot Reload (use instead of rebuilding)
+**API server** — auto-reloads with `--reload`, no action needed.
+**Celery workers** — copy updated code then restart:
+```bash
+docker cp . backend-celery_worker-1:/app/
+docker restart backend-celery_worker-1
+
+docker cp . backend-recommendation_worker-1:/app/
+docker restart backend-recommendation_worker-1
+```
+Only rebuild (`docker compose up -d --build`) when: Dockerfile changes, new dependencies (requirements.txt), or system-level changes.
+
+
+### Backend (local dev without Docker)
+```bash
+cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000  # API server
+cd backend && celery -A celery_app worker -Q crawler                # Celery worker
+cd backend && celery -A celery_app beat --loglevel=info             # Celery beat
+redis-server                                                       # Start Redis
+cd backend && python -m pytest -v                                   # Run tests
 ```
 
 ### Frontend

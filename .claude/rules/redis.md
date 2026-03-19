@@ -32,10 +32,10 @@ CACHE_TTL = 300  # 5 minutes
 ```
 
 ## Celery Broker
-Redis as Celery broker:
+Redis as Celery broker (configured via environment variables in docker-compose):
 ```python
-broker_url = "redis://localhost:6379/0"
-result_backend = "redis://localhost:6379/1"
+broker_url = "redis://redis:6379/0"
+result_backend = "redis://redis:6379/0"
 ```
 
 ## Watch Behavior
