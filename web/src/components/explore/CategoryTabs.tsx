@@ -18,8 +18,8 @@ interface CategoryTabsProps {
 
 export const CategoryTabs: React.FC<CategoryTabsProps> = ({ activeTag, onTagChange }) => {
     return (
-        <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex items-center gap-2 px-6 md:px-10 lg:px-14 xl:px-20 min-w-max py-6">
+        <div className="overflow-x-auto scrollbar-hide min-w-0">
+            <div className="flex items-center gap-2 px-6 md:px-10 lg:px-14 xl:px-20 py-6">
                 {CATEGORIES.map((cat) => {
                     const isActive = cat.tag === activeTag;
                     return (
