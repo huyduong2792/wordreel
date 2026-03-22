@@ -128,6 +128,3 @@ def get_recommendation_engine() -> RecommendationEngine:
     return get_container().recommendation_engine
 
 
-def get_tus_client() -> TUSClient:
-    """Get TUSClient from container"""
-    return get_container().tus_client

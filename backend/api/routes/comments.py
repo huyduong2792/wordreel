@@ -14,19 +14,9 @@ from api.dependencies import (
     get_comment_rate_limiter,
     get_sanitizer
 )
+from database.utils import ensure_user_exists
 
 router = APIRouter()
-
-
-def _ensure_user_exists(supabase: Client, user) -> None:
-    """Ensure user exists in users table (upsert from auth user)"""
-    user_metadata = user.user_metadata or {}
-    supabase.table("users").upsert({
-        "id": user.id,
-        "email": user.email,
-        "username": user_metadata.get("name") or user_metadata.get("full_name") or user.email.split("@")[0],
-        "avatar_url": user_metadata.get("avatar_url") or user_metadata.get("picture"),
-    }, on_conflict="id").execute()
 
 
 @router.get("/post/{post_id}", response_model=List[CommentResponse])
@@ -150,7 +140,7 @@ async def create_comment(
     
     try:
         # Ensure user exists in users table
-        _ensure_user_exists(supabase, current_user)
+        ensure_user_exists(supabase, current_user)
         
         # If replying, verify parent exists and is a top-level comment (no nested replies)
         if comment.parent_id:
@@ -267,7 +257,7 @@ async def like_comment(
     
     try:
         # Ensure user exists in users table
-        _ensure_user_exists(supabase, current_user)
+        ensure_user_exists(supabase, current_user)
         
         like_check = supabase.table("comment_likes").select("id").eq(
             "comment_id", comment_id

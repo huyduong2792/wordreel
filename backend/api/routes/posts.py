@@ -2,44 +2,16 @@
 Posts API endpoints - unified content management
 Supports: video, image_slides, audio, quiz content types
 """
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-from io import BytesIO
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
+from typing import List
+from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 
-from models.schemas import (
-    PostCreate, PostResponse, PostStatus, ContentType,
-    FeedRequest, FeedResponse, ImageSlide
-)
+from models.schemas import PostResponse
 from database.supabase_client import get_supabase, get_service_supabase
+from database.utils import transform_post_data, ensure_user_exists
 from auth.utils import get_current_user, get_current_user_optional
-from services.container import get_tus_client, get_content_processor
 
 router = APIRouter()
-
-
-def transform_post_data(post_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Transform post data from database format to schema format.
-    Extracts subtitles from the subtitles table JSONB column.
-    """
-    # Extract subtitles from the subtitles table join
-    subtitles_rows = post_data.get("subtitles", [])
-    
-    # The subtitles table has: id, post_id, language, subtitles (JSONB array)
-    # We need to extract the JSONB subtitles array
-    all_subtitles = []
-    
-    for row in subtitles_rows:
-        if isinstance(row, dict) and "subtitles" in row:
-            # The 'subtitles' column contains the JSONB array
-            subtitles_data = row.get("subtitles", [])
-            if isinstance(subtitles_data, list):
-                all_subtitles.extend(subtitles_data)
-    
-    post_data["subtitles"] = all_subtitles
-    return post_data
 
 
 @router.post("/batch")
@@ -164,17 +136,6 @@ async def get_post(
         )
 
 
-def _ensure_user_exists(supabase, user) -> None:
-    """Ensure user exists in users table (upsert from auth user)"""
-    user_metadata = user.user_metadata or {}
-    supabase.table("users").upsert({
-        "id": user.id,
-        "email": user.email,
-        "username": user_metadata.get("name") or user_metadata.get("full_name") or user.email.split("@")[0],
-        "avatar_url": user_metadata.get("avatar_url") or user_metadata.get("picture"),
-    }, on_conflict="id").execute()
-
-
 @router.post("/{post_id}/like")
 async def like_post(
     post_id: str,
@@ -185,7 +146,7 @@ async def like_post(
     
     try:
         # Ensure user exists in users table
-        _ensure_user_exists(supabase, current_user)
+        ensure_user_exists(supabase, current_user)
         
         like_check = supabase.table("post_likes").select("id").eq(
             "post_id", post_id
@@ -220,7 +181,7 @@ async def save_post(
     
     try:
         # Ensure user exists in users table
-        _ensure_user_exists(supabase, current_user)
+        ensure_user_exists(supabase, current_user)
         
         save_check = supabase.table("saved_posts").select("id").eq(
             "post_id", post_id

@@ -45,16 +45,6 @@ export interface SubtitleDisplay {
     wordTimings?: WordTiming[];
 }
 
-export interface Comment {
-    id: string;
-    username: string;
-    text: string;
-    avatar?: string;
-    likes: number;
-    timestamp: string;
-    isLiked: boolean;
-}
-
 /**
  * Transform backend Post to frontend VideoData
  */

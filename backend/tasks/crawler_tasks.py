@@ -281,38 +281,3 @@ def crawl_trending_videos_task(platform: str = "tiktok", limit: int = 10):
         "queued": queued_count
     }
 
-
-@celery_app.task(base=CrawlerTask)
-def schedule_crawl_task():
-    """Scheduled task to crawl new content (called by Celery Beat)"""
-    logger.info("Running scheduled crawl")
-    
-    platforms = ["tiktok", "youtube", "instagram"]
-    
-    for platform in platforms:
-        crawl_trending_videos_task.delay(platform, limit=5)
-    
-    return {"status": "success", "platforms": platforms}
-
-
-@celery_app.task(base=CrawlerTask)
-def crawl_single_video_task(source_url: str, user_id: Optional[str] = None):
-    """Crawl a single video from any supported platform"""
-    source_factory = VideoSourceFactory()
-    
-    source_handler = source_factory.get_source(source_url)
-    if not source_handler:
-        supported = source_factory.get_supported_platforms()
-        logger.error("Unsupported video source", url=source_url)
-        return {
-            "status": "error",
-            "message": f"Unsupported. Supported: {', '.join(supported)}"
-        }
-    
-    download_video_task.delay(source_url, user_id=user_id)
-    
-    return {
-        "status": "queued",
-        "source_url": source_url,
-        "platform": source_handler.get_platform_name()
-    }

@@ -43,8 +43,6 @@ const AppContent: React.FC<AppContentProps> = ({ initialPostId, sessionReady }) 
     );
 };
 
-export { SidebarItem } from '../shell';
-
 interface AppProps {
     initialPostId?: string;
 }

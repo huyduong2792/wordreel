@@ -254,43 +254,8 @@ class ApiClient {
         this.setToken(null);
     }
 
-    /**
-     * Check if user is authenticated (sync check from localStorage).
-     * Note: Token may be expired; actual API calls will refresh automatically.
-     */
-    isAuthenticated(): boolean {
-        if (typeof window !== 'undefined') {
-            return !!localStorage.getItem('wordreel_token');
-        }
-        return false;
-    }
-
-    // ========== Posts/Feed ==========
-
-    async getFeed(
-        limit = 10,
-        offset = 0,
-        contentType?: ContentType
-    ): Promise<FeedResponse> {
-        const params = new URLSearchParams({
-            limit: limit.toString(),
-            offset: offset.toString(),
-        });
-        if (contentType) {
-            params.append('content_type', contentType);
-        }
-        return this.request<FeedResponse>(`/posts/feed?${params}`);
-    }
-
     async getPost(postId: string): Promise<Post> {
         return this.request<Post>(`/posts/${postId}`);
-    }
-
-    async getPostsBatch(postIds: string[]): Promise<Post[]> {
-        return this.request<Post[]>(`/posts/batch`, {
-            method: 'POST',
-            body: JSON.stringify(postIds),
-        });
     }
 
     async likePost(postId: string): Promise<{ liked: boolean }> {
@@ -302,29 +267,6 @@ class ApiClient {
     async savePost(postId: string): Promise<{ saved: boolean }> {
         return this.request<{ saved: boolean }>(`/posts/${postId}/save`, {
             method: 'POST',
-        });
-    }
-
-    async recordView(
-        postId: string,
-        viewDuration: number,
-        completed: boolean
-    ): Promise<void> {
-        await this.request(`/posts/${postId}/view`, {
-            method: 'POST',
-            body: JSON.stringify({
-                view_duration: viewDuration,
-                completed,
-            }),
-        });
-    }
-
-    // ========== Recommendations ==========
-
-    async getRecommendations(limit = 10): Promise<FeedResponse> {
-        return this.request<FeedResponse>(`/recommendations/?limit=${limit}`, {
-            method: 'POST',
-            body: JSON.stringify({ limit }),
         });
     }
 
@@ -357,12 +299,6 @@ class ApiClient {
         });
     }
 
-    async deleteComment(commentId: string): Promise<void> {
-        await this.request(`/comments/${commentId}`, {
-            method: 'DELETE',
-        });
-    }
-
     async likeComment(commentId: string): Promise<{ liked: boolean }> {
         return this.request<{ liked: boolean }>(`/comments/${commentId}/like`, {
             method: 'POST',
@@ -386,10 +322,6 @@ class ApiClient {
                 answers,
             }),
         });
-    }
-
-    async getQuizResults(postId: string): Promise<QuizResult[]> {
-        return this.request<QuizResult[]>(`/quizzes/results/post/${postId}`);
     }
 
     // ========== Session & Recommendations ==========
@@ -478,6 +410,3 @@ class ApiClient {
 
 // Export singleton instance
 export const api = new ApiClient(API_BASE_URL);
-
-// Export class for testing
-export { ApiClient };

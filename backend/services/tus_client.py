@@ -4,7 +4,7 @@ TUS protocol client for resumable file uploads using tuspy library
 import os
 import subprocess
 import json
-from typing import Optional, Dict, BinaryIO
+from typing import Optional, Dict
 from tusclient import client as tus_client
 from config import get_settings
 import structlog
@@ -88,12 +88,6 @@ class TUSClient:
             "X-App-Credential-Secret": self.credential_secret,
         }
     
-    @staticmethod
-    def _encode_metadata(value: str) -> str:
-        """Encode metadata value for TUS (base64)"""
-        import base64
-        return base64.b64encode(value.encode()).decode()
-    
     def upload_file_sync(
         self,
         file_path: str,
@@ -169,104 +163,7 @@ class TUSClient:
         except Exception as e:
             logger.error("Failed to upload file via TUS", file_path=file_path, error=str(e))
             raise Exception(f"Failed to upload file: {str(e)}")
-    
-    def upload_file_object_sync(
-        self,
-        file_obj: BinaryIO,
-        filename: str,
-        file_size: int,
-        metadata: Optional[Dict[str, str]] = None,
-        chunk_size: int = 5 * 1024 * 1024
-    ) -> Dict[str, str]:
-        """
-        Upload a file object using TUS protocol (synchronous for Celery tasks)
-        
-        Args:
-            file_obj: File-like object to upload
-            filename: Name of the file
-            file_size: Size of the file in bytes
-            metadata: Additional metadata for the upload
-            chunk_size: Size of each chunk (default 5MB)
-        
-        Returns:
-            Dict with upload_url and file_path
-        """
-        try:
-            logger.info("Starting TUS upload from file object", filename=filename, file_size=file_size)
-            
-            # Prepare metadata
-            meta = metadata or {}
-            meta["filename"] = filename
-            
-            # Create TUS client with custom headers
-            my_client = tus_client.TusClient(
-                self.server_url,
-                headers=self._get_headers()
-            )
-            
-            # Create uploader with file stream
-            uploader = my_client.uploader(
-                file_stream=file_obj,
-                chunk_size=chunk_size,
-                metadata=meta,
-                retries=3,
-                retry_delay=5
-            )
-            
-            # Upload the file
-            uploader.upload()
-            
-            # Get the upload URL
-            upload_url = uploader.url
-            remote_file_path = meta.get("file_path", "")
-            
-            logger.info(
-                "TUS upload completed",
-                filename=filename,
-                file_size=file_size,
-                upload_url=upload_url,
-                file_path=remote_file_path
-            )
-            
-            return {
-                "upload_url": upload_url,
-                "file_path": remote_file_path
-            }
-            
-        except Exception as e:
-            logger.error("Failed to upload file object via TUS", filename=filename, error=str(e))
-            raise Exception(f"Failed to upload file: {str(e)}")
-    
-    # Async versions for FastAPI routes
-    async def upload_file(
-        self,
-        file_path: str,
-        metadata: Optional[Dict[str, str]] = None,
-        chunk_size: int = 5 * 1024 * 1024,
-        verify_video: bool = True
-    ) -> Dict[str, str]:
-        """Async wrapper for upload_file_sync"""
-        import asyncio
-        return await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: self.upload_file_sync(file_path, metadata, chunk_size, verify_video)
-        )
-    
-    async def upload_file_object(
-        self,
-        file_obj: BinaryIO,
-        filename: str,
-        file_size: int,
-        metadata: Optional[Dict[str, str]] = None,
-        chunk_size: int = 5 * 1024 * 1024
-    ) -> Dict[str, str]:
-        """Async wrapper for upload_file_object_sync"""
-        import asyncio
-        return await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: self.upload_file_object_sync(file_obj, filename, file_size, metadata, chunk_size)
-        )
-    
+
     @staticmethod
     def get_cloud_urls(file_path: str, base_url: str = "http://huydq.staging.mediacdn.vn") -> Dict[str, str]:
         """

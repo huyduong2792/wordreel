@@ -153,15 +153,6 @@ class InputSanitizer:
             )
         
         return content
-    
-    @staticmethod
-    def sanitize_username(username: str) -> str:
-        """
-        Sanitize username - alphanumeric, underscores, dots only.
-        """
-        # Remove anything that's not alphanumeric, underscore, or dot
-        username = re.sub(r'[^\w.]', '', username)
-        return username[:50]  # Max 50 chars
 
 
 def get_sanitizer() -> InputSanitizer:
@@ -171,5 +162,3 @@ def get_sanitizer() -> InputSanitizer:
 
 # Pre-configured rate limiters for common use cases
 get_comment_rate_limiter = get_rate_limiter("comments", max_requests=10, window_seconds=60)
-get_like_rate_limiter = get_rate_limiter("likes", max_requests=30, window_seconds=60)
-get_upload_rate_limiter = get_rate_limiter("uploads", max_requests=5, window_seconds=300)

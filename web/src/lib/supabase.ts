@@ -50,27 +50,3 @@ export async function signOut() {
         throw error;
     }
 }
-
-/**
- * Get current Supabase session
- */
-export async function getSession() {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-        console.error('Get session error:', error);
-        return null;
-    }
-    return session;
-}
-
-/**
- * Get current user from Supabase
- */
-export async function getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) {
-        console.error('Get user error:', error);
-        return null;
-    }
-    return user;
-}

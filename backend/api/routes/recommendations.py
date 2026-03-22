@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from supabase import Client
 from models.schemas import PostResponse, PostStatus, ContentType
 from database.supabase_client import get_supabase, get_service_supabase
+from database.utils import transform_post_data
 from auth.utils import get_current_user, get_current_user_optional
 from services.container import get_recommendation_engine
 from services.redis_client import get_redis_session_client, RedisSessionClient
@@ -14,29 +15,6 @@ from services.recommendation_engine import RecommendationEngine
 import uuid
 
 router = APIRouter()
-
-
-def transform_post_data(post_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Transform post data from database format to schema format.
-    Extracts subtitles from the subtitles table JSONB column.
-    """
-    # Extract subtitles from the subtitles table join
-    subtitles_rows = post_data.get("subtitles", [])
-    
-    # The subtitles table has: id, post_id, language, subtitles (JSONB array)
-    # We need to extract the JSONB subtitles array
-    all_subtitles = []
-    
-    for row in subtitles_rows:
-        if isinstance(row, dict) and "subtitles" in row:
-            # The 'subtitles' column contains the JSONB array
-            subtitles_data = row.get("subtitles", [])
-            if isinstance(subtitles_data, list):
-                all_subtitles.extend(subtitles_data)
-    
-    post_data["subtitles"] = all_subtitles
-    return post_data
 
 
 class WatchEventRequest(BaseModel):

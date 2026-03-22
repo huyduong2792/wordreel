@@ -103,33 +103,3 @@ def generate_post_embedding_task(post_id: str):
         logger.error("Failed to generate embedding", post_id=post_id, error=str(e))
         raise
 
-
-@celery_app.task(max_retries=3, default_retry_delay=300)
-def backfill_embeddings_task(batch_size: int = 100):
-    """
-    Backfill embeddings for posts that don't have them.
-    Useful for migrating existing content.
-    """
-    supabase = get_service_supabase()
-    
-    try:
-        # Find posts without embeddings
-        response = supabase.table("posts").select("id").is_(
-            "embedding", "null"
-        ).eq("status", "ready").limit(batch_size).execute()
-        
-        post_ids = [p["id"] for p in response.data]
-        
-        logger.info(f"Found {len(post_ids)} posts without embeddings")
-        
-        for post_id in post_ids:
-            generate_post_embedding_task.delay(post_id)
-        
-        return {
-            "status": "success",
-            "queued": len(post_ids)
-        }
-        
-    except Exception as e:
-        logger.error("Failed to backfill embeddings", error=str(e))
-        raise
