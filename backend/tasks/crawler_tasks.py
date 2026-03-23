@@ -252,32 +252,4 @@ def _save_to_database(
     return post_id
 
 
-@celery_app.task(base=CrawlerTask)
-def crawl_trending_videos_task(platform: str = "tiktok", limit: int = 10):
-    """Crawl trending videos from a platform"""
-    logger.info("Starting trending videos crawl", platform=platform, limit=limit)
-    
-    # Platform-specific trending sources
-    # TODO: Implement actual trending video discovery
-    trending_sources = {
-        "tiktok": [],
-        "youtube": [],
-        "instagram": []
-    }
-    
-    sources = trending_sources.get(platform, [])
-    
-    # Queue downloads
-    queued_count = 0
-    for source_url in sources[:limit]:
-        download_video_task.delay(source_url)
-        queued_count += 1
-    
-    logger.info("Queued trending videos", platform=platform, count=queued_count)
-    
-    return {
-        "status": "success",
-        "platform": platform,
-        "queued": queued_count
-    }
 

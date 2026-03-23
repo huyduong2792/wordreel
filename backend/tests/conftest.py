@@ -31,6 +31,7 @@ class MockRedisSessionClient:
         self.sessions: Dict[str, Dict] = {}
         self.watches: Dict[str, List[Dict]] = {}
         self.recommendations: Dict[str, Dict] = {}
+        self.similar_posts_cache: Dict[str, List[str]] = {}
         self.pending_syncs: set = set()
     
     def create_session(
@@ -108,6 +109,13 @@ class MockRedisSessionClient:
     
     def get_all_sessions_for_recommendations(self, limit: int = 50) -> List[str]:
         return list(self.sessions.keys())[:limit]
+
+    def get_cached_similar_posts(self, post_id: str, limit: int) -> Optional[List[str]]:
+        return self.similar_posts_cache.get(post_id)
+
+    def cache_similar_posts(self, post_id: str, post_ids: List[str], limit: int) -> bool:
+        self.similar_posts_cache[post_id] = post_ids
+        return True
 
 
 class MockRecommendationEngine:

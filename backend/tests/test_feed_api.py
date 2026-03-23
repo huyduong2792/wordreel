@@ -36,6 +36,7 @@ class MockRedisSessionClient:
         self.sessions: Dict[str, Dict] = {}
         self.watches: Dict[str, List[Dict]] = {}
         self.recommendations: Dict[str, Dict] = {}
+        self.similar_posts_cache: Dict[str, List[str]] = {}
         self.ttl_extended: List[str] = []
     
     def create_session(
@@ -101,6 +102,13 @@ class MockRedisSessionClient:
     
     def extend_session_ttl(self, session_id: str, user_id: Optional[str] = None) -> bool:
         self.ttl_extended.append(session_id)
+        return True
+
+    def get_cached_similar_posts(self, post_id: str, limit: int) -> Optional[List[str]]:
+        return self.similar_posts_cache.get(post_id)
+
+    def cache_similar_posts(self, post_id: str, post_ids: List[str], limit: int) -> bool:
+        self.similar_posts_cache[post_id] = post_ids
         return True
 
 
