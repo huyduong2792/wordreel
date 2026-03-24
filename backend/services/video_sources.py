@@ -89,6 +89,8 @@ class TikTokSource(VideoSource):
             'thumbnail': info.get('thumbnail', ''),
             'tags': list(set(tags))[:10],  # Unique tags, max 10
             'creator': creator,
+            'creator_name': info.get('uploader', 'Unknown'),
+            'creator_avatar_url': info.get('thumbnail', ''),
             'view_count': info.get('view_count', 0),
             'like_count': info.get('like_count', 0),
             'platform': 'tiktok'
@@ -135,6 +137,8 @@ class YouTubeSource(VideoSource):
             'thumbnail': info.get('thumbnail', ''),
             'tags': list(set(tags))[:10],
             'creator': info.get('uploader', info.get('channel', 'Unknown')),
+            'creator_name': info.get('uploader', info.get('channel', 'Unknown')),
+            'creator_avatar_url': info.get('thumbnail', ''),
             'view_count': info.get('view_count', 0),
             'like_count': info.get('like_count', 0),
             'platform': 'youtube'
@@ -182,6 +186,8 @@ class InstagramSource(VideoSource):
             'thumbnail': info.get('thumbnail', ''),
             'tags': list(set(tags))[:10],
             'creator': info.get('uploader', 'Unknown'),
+            'creator_name': info.get('uploader', 'Unknown'),
+            'creator_avatar_url': info.get('thumbnail', ''),
             'view_count': info.get('view_count', 0),
             'like_count': info.get('like_count', 0),
             'platform': 'instagram'

@@ -92,6 +92,8 @@ class PostBase(BaseModel):
     thumbnail_url: Optional[str] = None
     tags: List[str] = []
     difficulty_level: Optional[str] = "beginner"
+    topic: Optional[str] = None
+    creator_name: Optional[str] = None
 
 
 class PostCreate(PostBase):
@@ -205,6 +207,7 @@ class QuizQuestion(BaseModel):
     correct_answer: Optional[str] = None
     explanation: Optional[str] = None
     points: int = 10
+    difficulty: int = 1  # 1=easiest, 4=hardest (TOEIC-style ordering)
 
 
 class QuizCreate(BaseModel):

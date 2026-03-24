@@ -41,26 +41,44 @@ class QuizGenerator:
         if len(video_transcript) > max_transcript:
             video_transcript = video_transcript[:max_transcript] + "..."
         
-        prompt = f"""Generate {num_questions} English learning quiz questions from this video.
+        prompt = f"""Generate {num_questions} English learning quiz questions in TOEIC format from this video.
+Questions MUST be ordered from EASIEST to HARDEST (Part 1 → Part 5 → Part 6 → Part 7 style).
+
+Difficulty levels:
+- Level 1 (easiest): Single word/vocabulary questions — "The word 'X' in the video means:"
+- Level 2: Simple grammar/phrase completion — "Choose the correct word to complete:"
+- Level 3: Contextual multiple choice — "Based on the video, what is the best answer:"
+- Level 4 (hardest): Reading comprehension — longer questions requiring full context understanding
+
+Each question must:
+- Be answerable ONLY from the video content
+- Have 4 options (A, B, C, D) for multiple choice
+- Have ONE correct answer, THREE distractors that look plausible
+- Use natural, conversational English from the video
 
 Title: {video_title}
 Transcript: {video_transcript}
 
-Mix question types:
-- multiple_choice: Test understanding
-- fill_blank: Test vocabulary (use ___ for blank)
-- true_false: Test comprehension
-
 Return JSON only:
 {{"questions": [
-  {{"type": "multiple_choice", "question": "...", "options": [
+  {{"type": "multiple_choice", "difficulty": 1, "question": "The word '...' in the video means:", "options": [
     {{"id": "a", "text": "...", "is_correct": false}},
     {{"id": "b", "text": "...", "is_correct": true}},
     {{"id": "c", "text": "...", "is_correct": false}},
     {{"id": "d", "text": "...", "is_correct": false}}
   ], "explanation": "...", "points": 10}},
-  {{"type": "fill_blank", "question": "The ___ is important.", "correct_answer": "word", "explanation": "...", "points": 10}},
-  {{"type": "true_false", "question": "...", "correct_answer": "true", "explanation": "...", "points": 10}}
+  {{"type": "multiple_choice", "difficulty": 2, "question": "Choose the correct word to complete the sentence: '...'", "options": [
+    {{"id": "a", "text": "...", "is_correct": false}},
+    {{"id": "b", "text": "...", "is_correct": true}},
+    {{"id": "c", "text": "...", "is_correct": false}},
+    {{"id": "d", "text": "...", "is_correct": false}}
+  ], "explanation": "...", "points": 15}},
+  {{"type": "multiple_choice", "difficulty": 3, "question": "Based on the video, what is the best answer to:", "options": [
+    {{"id": "a", "text": "...", "is_correct": false}},
+    {{"id": "b", "text": "...", "is_correct": true}},
+    {{"id": "c", "text": "...", "is_correct": false}},
+    {{"id": "d", "text": "...", "is_correct": false}}
+  ], "explanation": "...", "points": 20}}
 ]}}"""
         
         try:
@@ -88,11 +106,14 @@ Return JSON only:
             for i, q_data in enumerate(result.get("questions", [])):
                 try:
                     question_type = QuestionType(q_data["type"])
-                    
+
                     options = None
                     if "options" in q_data:
                         options = [QuizOption(**opt) for opt in q_data["options"]]
-                    
+
+                    difficulty = q_data.get("difficulty", 1)
+                    points = q_data.get("points", 10 + (difficulty - 1) * 5)
+
                     question = QuizQuestion(
                         id=f"q{i+1}",
                         type=question_type,
@@ -100,7 +121,7 @@ Return JSON only:
                         options=options,
                         correct_answer=q_data.get("correct_answer"),
                         explanation=q_data.get("explanation", ""),
-                        points=q_data.get("points", 10)
+                        points=points
                     )
                     questions.append(question)
                 except Exception as parse_error:

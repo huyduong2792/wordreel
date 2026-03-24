@@ -17,6 +17,7 @@ async def get_explore_feed(
     limit: int = Query(20, ge=1, le=30),
     offset: int = Query(0, ge=0),
     tag: Optional[str] = Query(None, description="Filter by tag/category"),
+    topic: Optional[str] = Query(None, description="Filter by topic (exact match)"),
     content_type: Optional[ContentType] = Query(None),
     supabase: Client = Depends(get_supabase),
     current_user=Depends(get_current_user_optional)
@@ -57,6 +58,10 @@ async def get_explore_feed(
         # Apply content type filter
         if content_type:
             query = query.eq("content_type", content_type.value)
+
+        # Apply topic filter
+        if topic:
+            query = query.eq("topic", topic)
 
         # Order by likes_count desc, then views_count desc
         query = query.order("likes_count", desc=True).order("views_count", desc=True)

@@ -53,11 +53,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
 
             {/* Username below thumbnail */}
-            {post.username && (
+            {post.creator_name ? (
+                <p className="mt-1.5 text-gray-300 text-xs truncate">
+                    @{post.creator_name}
+                </p>
+            ) : post.username ? (
                 <p className="mt-1.5 text-gray-300 text-xs truncate">
                     @{post.username}
                 </p>
-            )}
+            ) : null}
         </a>
     );
 };

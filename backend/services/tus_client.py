@@ -165,7 +165,7 @@ class TUSClient:
             raise Exception(f"Failed to upload file: {str(e)}")
 
     @staticmethod
-    def get_cloud_urls(file_path: str, base_url: str = "http://huydq.staging.mediacdn.vn") -> Dict[str, str]:
+    def get_cloud_urls(file_path: str, base_url: Optional[str] = None) -> Dict[str, str]:
         """
         Generate cloud CDN URLs from file path
         
@@ -178,7 +178,10 @@ class TUSClient:
         """
         if not file_path.startswith("/"):
             file_path = "/" + file_path
-        
+
+        if base_url is None:
+            base_url = settings.CDN_BASE_URL
+
         video_url = f"{base_url}{file_path}"
         
         # Extract filename for thumbnail

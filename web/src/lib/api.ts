@@ -52,6 +52,7 @@ export interface QuizQuestion {
     correct_answer?: string;
     explanation?: string;
     points?: number;
+    difficulty?: number;  // 1=easiest, 4=hardest (TOEIC-style ordering)
 }
 
 export interface Quiz {
@@ -71,6 +72,8 @@ export interface Post {
     thumbnail_url?: string;
     tags: string[];
     difficulty_level: string;
+    topic?: string;
+    creator_name?: string;
     
     // Video fields
     video_url?: string;
@@ -395,13 +398,14 @@ class ApiClient {
         );
     }
 
-    async getExploreFeed(limit = 20, offset = 0, tag?: string): Promise<FeedResponse> {
+    async getExploreFeed(limit = 20, offset = 0, tag?: string, topic?: string): Promise<FeedResponse> {
         const sessionId = this.getSessionId();
         const params = new URLSearchParams({
             limit: limit.toString(),
             offset: offset.toString(),
         });
         if (tag) params.append('tag', tag);
+        if (topic) params.append('topic', topic);
         const headers: HeadersInit = {};
         if (sessionId) headers['X-Session-Id'] = sessionId;
         return this.request<FeedResponse>(`/explore?${params}`, { headers });

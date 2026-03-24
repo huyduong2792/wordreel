@@ -286,6 +286,8 @@ def sample_post():
         "likes_count": 10,
         "comments_count": 5,
         "tags": ["english", "beginner"],
+        "topic": "english",
+        "creator_name": "TestCreator",
         "difficulty_level": "beginner",
         "subtitles": [],
         "created_at": "2026-02-14T10:00:00Z",

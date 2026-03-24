@@ -134,6 +134,7 @@ def download_video_task(
                 "dash_qualities": "360,720",
                 "hls_qualities": "720",
                 "creator": metadata.get('creator', 'crawler'),
+                "creator_name": metadata.get('creator_name', 'crawler'),
                 "default_thumb_timepct": "0,5",
                 "source_url": source_url,
                 "platform": platform
@@ -216,6 +217,8 @@ def _save_to_database(
         "duration": metadata.get('duration', 0),
         "status": PostStatus.READY.value,
         "tags": final_tags,
+        "topic": final_tags[0] if final_tags else None,
+        "creator_name": metadata.get('creator_name'),
         "user_id": user_id,
         "difficulty_level": "beginner",
         "views_count": 0,
